@@ -1,0 +1,52 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  password_hash String
+  created_at    DateTime        @default(now())
+  shoppingLists ShoppingList[]
+  sharedLists   SharedList[]
+}
+
+model ShoppingList {
+  id          String       @id @default(cuid())
+  user        User         @relation(fields: [userId], references: [id])
+  userId      String
+  title       String
+  total_value Float        @default(0)
+  items       ListItem[]
+  sharedWith  SharedList[]
+}
+
+model ListItem {
+  id           String       @id @default(cuid())
+  list         ShoppingList @relation(fields: [listId], references: [id])
+  listId       String
+  product_name String
+  barcode      String?
+  quantity     Int          @default(1)
+  unit_price   Float        @default(0)
+  total_price  Float        @default(0)
+  checked      Boolean      @default(false)
+
+  @@map("list_items")
+}
+
+model SharedList {
+  id                String       @id @default(cuid())
+  list              ShoppingList @relation(fields: [listId], references: [id])
+  listId            String
+  sharedWithUser    User         @relation(fields: [sharedWithUserId], references: [id])
+  sharedWithUserId  String
+  permissions       String // "view" or "edit"
+
+  @@map("shared_lists")
+}

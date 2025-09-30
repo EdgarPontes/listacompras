@@ -1,0 +1,27 @@
+!frontend/.env.local.example
+# Node.js
+node_modules
+*.log
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Next.js
+.next/
+out/
+
+# Prisma
+prisma/migrations
+
+# TypeScript
+*.tsbuildinfo
+
+# IDEs
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+thumbs.db
