@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes';
 import shoppingListRoutes from './routes/shoppingListRoutes';
 import listItemRoutes from './routes/listItemRoutes';
 import shareRoutes from './routes/shareRoutes';
+import nfceRoutes from './routes/nfceRoutes';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/lists', shoppingListRoutes);
 app.use('/api/lists/:listId/items', listItemRoutes);
 app.use('/api/share', shareRoutes);
+app.use('/api/nfce', nfceRoutes);
 
 app.get('/', (req, res) => {
   res.send('Hello from the backend!');

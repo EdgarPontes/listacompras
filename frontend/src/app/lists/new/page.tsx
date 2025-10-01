@@ -13,6 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
@@ -33,32 +34,16 @@ const formSchema = z.object({
   unitPrice: z.coerce.number().optional(),
 });
 
-// Helper function to parse HTML
-function parseFiscalCouponHtml(html: string) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-
-  const items: ListItem[] = [];
-
-  // Find all product rows
-  const productRows = doc.querySelectorAll('table.nfce_item_table tbody tr'); // Adjust selector based on actual HTML structure
-
-  productRows.forEach(row => {
-    const productNameElement = row.querySelector('.txtTit2');
-    const quantityElement = row.querySelector('.Rqtd');
-    const unitPriceElement = row.querySelector('.RvlUnit');
-    const barcodeElement = row.querySelector('.RCod'); // Assuming a class for barcode
-
-    const productName = productNameElement?.textContent?.trim() || 'Unknown Product';
-    const quantity = parseFloat(quantityElement?.textContent?.replace(',', '.') || '1');
-    const unitPrice = parseFloat(unitPriceElement?.textContent?.replace(',', '.') || '0');
-    const barcode = barcodeElement?.textContent?.trim() || '';
-
-    items.push({ productName, quantity, unitPrice, barcode });
-  });
-
-  return items;
-}
+// Backend response shape for NFC-e parsing
+type ParseNfceResponse = {
+  produtos: Array<{
+    descricao: string;
+    codigo: string | null;
+    quantidade: number | null;
+    valor_unitario: number | null;
+    valor_total: number | null;
+  }>;
+};
 
 export default function NewListPage() {
   const router = useRouter();
@@ -92,32 +77,41 @@ export default function NewListPage() {
 
   const handleScan = async (result: string) => {
     if (isScanningFiscalCoupon) {
-      // Assume result is a URL for fiscal coupon
+      // Assume result is a URL for fiscal coupon; send it to backend parser
       try {
-        const response = await fetch(`/api/fiscal-coupon-proxy?url=${encodeURIComponent(result)}`);
-        const html = await response.text();
+        const response = await fetch(`/api/forward?url=/api/nfce/parse-nfce`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: result }),
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(`Backend parse failed (${response.status}): ${text}`);
+        }
 
-        if (response.ok) {
-          const items = parseFiscalCouponHtml(html);
-          if (items.length > 0) {
-            setImportedItems(prevItems => [...prevItems, ...items]);
-            toast({
-              title: "Fiscal coupon scanned successfully",
-              description: `Added ${items.length} items from fiscal coupon.`,
-            });
-            setIsScanningFiscalCoupon(false);
-          } else {
-            toast({
-              title: "Fiscal coupon scanned",
-              description: "No items found in the fiscal coupon.",
-              variant: "destructive",
-            });
-          }
+        const data: ParseNfceResponse = await response.json();
+        const produtos = Array.isArray(data?.produtos) ? data.produtos : [];
+        const items: ListItem[] = produtos.map(p => ({
+          productName: p.descricao || 'Produto',
+          barcode: p.codigo || '',
+          quantity: typeof p.quantidade === 'number' && !isNaN(p.quantidade) ? p.quantidade : 1,
+          unitPrice: typeof p.valor_unitario === 'number' && !isNaN(p.valor_unitario)
+            ? p.valor_unitario
+            : (typeof p.valor_total === 'number' && !isNaN(p.valor_total) ? p.valor_total : 0),
+        }));
+
+        if (items.length > 0) {
+          setImportedItems(prevItems => [...prevItems, ...items]);
+          toast({
+            title: 'Fiscal coupon scanned successfully',
+            description: `Added ${items.length} items from fiscal coupon.`,
+          });
+          setIsScanningFiscalCoupon(false);
         } else {
           toast({
-            title: "Fiscal coupon scanned",
-            description: `Failed to fetch fiscal coupon data: ${response.statusText}`,
-            variant: "destructive",
+            title: 'Fiscal coupon scanned',
+            description: 'No items found in the fiscal coupon.',
+            variant: 'destructive',
           });
         }
       } catch (error) {
