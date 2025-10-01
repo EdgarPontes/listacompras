@@ -1,7 +1,7 @@
 'use client';
 
 import { useApi } from '@/hooks/useApi';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { AnimatedCard } from '@/components/AnimatedCard';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from '@/components/ui/table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,6 +28,8 @@ import {
 } from '@/components/ui/form';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { ShareListModal } from '@/components/ShareListModal';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface ListItem {
   id: string;
@@ -45,21 +48,31 @@ interface ShoppingList {
   items: ListItem[];
 }
 
+interface FormFields {
+  productName: string;
+  barcode?: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 const formSchema = z.object({
   productName: z.string().min(1),
-  barcode: z.string().optional(),
+  barcode: z.string().default(''),
   quantity: z.coerce.number().min(1),
   unitPrice: z.coerce.number().min(0),
 });
 
+
 export default function ListPage() {
   const params = useParams();
   const { id } = params;
+  const router = useRouter();
   const { data: list, loading, error, setData } = useApi<ShoppingList>(
     `/api/lists/${id}`
   );
+  const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormFields, any, FormFields>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       productName: '',
@@ -69,7 +82,7 @@ export default function ListPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormFields) {
     const response = await fetch(`/api/forward?url=/api/lists/${id}/items`, {
       method: 'POST',
       headers: {
@@ -94,10 +107,36 @@ export default function ListPage() {
     }
   }
 
-  const handleScan = (result: string) => {
+  const handleScan = async (result: string) => {
     form.setValue('barcode', result);
-    // Here you could also fetch product information from an API based on the barcode
-    form.setValue('productName', `Product with barcode ${result}`);
+
+    try {
+      const response = await fetch(`/api/eanpictures?barcode=${result}`);
+      const data = await response.json();
+
+      if (response.ok && data.Status === "200") {
+        form.setValue('productName', data.Nome);
+        toast({
+          title: "Barcode scanned successfully",
+          description: `Product: ${data.Nome}`,
+        });
+      } else {
+        form.setValue('productName', `Product with barcode ${result}`);
+        toast({
+          title: "Barcode scanned",
+          description: `Could not find product for barcode: ${result}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching product data:", error);
+      form.setValue('productName', `Product with barcode ${result}`);
+      toast({
+        title: "Barcode scanned",
+        description: `Error fetching product data for barcode: ${result}`,
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -112,10 +151,15 @@ export default function ListPage() {
     return <div>List not found</div>;
   }
 
+  const totalUnitValue = list.items ? list.items.reduce((sum, item) => sum + item.unit_price, 0) : 0;
+
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto flex flex-col h-screen py-10">
             <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">{list.title}</h1>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => router.push('/')}>Back to Home</Button>
+          <h1 className="text-3xl font-bold">{list.title}</h1>
+        </div>
         <ShareListModal listId={id as string} />
       </div>
       <AnimatedCard className="mb-6 glass">
@@ -136,6 +180,19 @@ export default function ListPage() {
                     <FormLabel>Product Name</FormLabel>
                     <FormControl>
                       <Input placeholder="Milk" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="barcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Barcode</FormLabel>
+                    <FormControl>
+                      <Input type="text" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -174,18 +231,25 @@ export default function ListPage() {
       </AnimatedCard>
 
       <AnimatedCard className="glass">
-        <CardHeader>
-          <CardTitle>Items</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Items</CardTitle>
+          <div className="text-xs text-muted-foreground">
+            Total Unit Value: ${totalUnitValue.toFixed(2)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Total Value: ${list.total_value.toFixed(2)}
+          </div>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="flex-grow overflow-hidden">
+          <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
+            <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Barcode</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Total Price</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Código de Barras</TableHead>
+                <TableHead>Quantidade</TableHead>
+                <TableHead>Preço Unitário</TableHead>
+                <TableHead>Preço Total</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -206,8 +270,8 @@ export default function ListPage() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </AnimatedCard>
+        </div>
+      </CardContent>      </AnimatedCard>
     </div>
   );
 }

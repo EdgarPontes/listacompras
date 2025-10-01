@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export async function POST(req: NextRequest) {
   const { token } = await req.json();
@@ -17,4 +18,15 @@ export async function POST(req: NextRequest) {
   });
 
   return response;
+}
+
+export async function GET() {
+  const cookieStore = cookies();
+  const token = cookieStore.get('token');
+
+  if (!token) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  return NextResponse.json({ token: token.value });
 }

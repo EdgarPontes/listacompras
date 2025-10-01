@@ -27,8 +27,8 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { title } = req.body;
-    const list = await shoppingListService.createList(title, req.userId!);
+    const { title, items } = req.body;
+    const list = await shoppingListService.createList(title, req.userId!, items);
     res.status(201).json(list);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });

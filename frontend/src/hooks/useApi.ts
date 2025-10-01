@@ -8,7 +8,8 @@ export function useApi<T>(url: string, options: RequestInit = {}) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/forward?url=${encodeURIComponent(url)}`, options);
+        const fetchUrl = url.startsWith('/api/auth/session') ? url : `/api/forward?url=${encodeURIComponent(url)}`;
+        const response = await fetch(fetchUrl, options);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Something went wrong');
@@ -24,7 +25,7 @@ export function useApi<T>(url: string, options: RequestInit = {}) {
     };
 
     fetchData();
-  }, [url, options]);
+  }, [url, JSON.stringify(options)]);
 
-  return { data, error, loading };
+  return { data, error, loading, setData };
 }

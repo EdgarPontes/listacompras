@@ -49,7 +49,7 @@ export default function LoginPage() {
         },
         body: JSON.stringify({ token }),
       });
-      router.push('/');
+      router.push('/dashboard');
     } else {
       // Handle error
       console.error('Login failed');

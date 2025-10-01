@@ -11,7 +11,7 @@ export class ListItemService {
     });
   }
 
-  async createItem(listId: string, productName: string, quantity: number, unitPrice: number) {
+  async createItem(listId: string, productName: string, quantity: number, unitPrice: number = 0, barcode?: string) {
     const totalPrice = quantity * unitPrice;
     const item = await prisma.listItem.create({
       data: {
@@ -20,13 +20,14 @@ export class ListItemService {
         quantity,
         unit_price: unitPrice,
         total_price: totalPrice,
+        barcode: barcode || null,
       },
     });
     await shoppingListService.calculateTotalValue(listId);
     return item;
   }
 
-  async updateItem(id: string, productName: string, quantity: number, unitPrice: number, checked: boolean) {
+  async updateItem(id: string, productName: string, quantity: number, unitPrice: number = 0, checked: boolean) {
     const totalPrice = quantity * unitPrice;
     const item = await prisma.listItem.update({
       where: { id },

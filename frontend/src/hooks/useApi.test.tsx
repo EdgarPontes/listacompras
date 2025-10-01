@@ -23,9 +23,10 @@ describe('useApi', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-      expect(result.current.data).toEqual({ message: 'success' });
-      expect(result.current.error).toBeNull();
-    }, { timeout: 5000 });
+    });
+
+    expect(result.current.data).toEqual({ message: 'success' });
+    expect(result.current.error).toBeNull();
 
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/forward?url=%2Fapi%2Flists',
@@ -47,9 +48,10 @@ describe('useApi', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
-      expect(result.current.data).toBeNull();
-      expect(result.current.error).toBeInstanceOf(Error);
-    }, { timeout: 5000 });
+    });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.error).toBeInstanceOf(Error);
 
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/forward?url=%2Fapi%2Flists',

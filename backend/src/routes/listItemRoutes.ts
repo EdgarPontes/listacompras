@@ -18,8 +18,8 @@ router.get('/', async (req: AuthRequest, res) => {
 
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { productName, quantity, unitPrice } = req.body;
-    const item = await listItemService.createItem(req.params.listId, productName, quantity, unitPrice);
+    const { productName, quantity, unitPrice, barcode } = req.body;
+    const item = await listItemService.createItem(req.params.listId, productName, quantity, unitPrice, barcode);
     res.status(201).json(item);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
