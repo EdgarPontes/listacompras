@@ -48,15 +48,15 @@ interface ShoppingList {
 interface FormFields {
   productName: string;
   barcode?: string;
-  quantity: number;
-  unitPrice: number;
+  quantity: string | number;
+  unitPrice: string | number;
 }
 
 const formSchema = z.object({
   productName: z.string().min(1),
   barcode: z.string().optional(),
-  quantity: z.number().min(1),
-  unitPrice: z.number().min(0),
+  quantity: z.union([z.string(), z.number()]).transform((val) => parseFloat(val as string) || 0).refine((val) => val > 0),
+  unitPrice: z.union([z.string(), z.number()]).transform((val) => parseFloat(val as string) || 0).refine((val) => val >= 0),
 });
 
 
@@ -87,8 +87,8 @@ export default function ListPage() {
       body: JSON.stringify({
         productName: values.productName,
         barcode: values.barcode,
-        quantity: Number(values.quantity),
-        unitPrice: Number(values.unitPrice),
+        quantity: values.quantity,
+        unitPrice: values.unitPrice,
       }),
     });
 
