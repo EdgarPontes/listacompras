@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const response = await fetch(`${process.env.BACKEND_URL}/api/auth/register`,
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`,
   {
     method: 'POST',
     headers: {

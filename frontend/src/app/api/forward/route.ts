@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${process.env.BACKEND_URL}${url}`,
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${url}`,
   {
     headers,
   });
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
-  const response = await fetch(`${process.env.BACKEND_URL}${url}`,
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${url}`,
   {
     method: 'POST',
     headers,
