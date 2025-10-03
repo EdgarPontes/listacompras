@@ -2,6 +2,7 @@
 
 import { useApi } from '@/hooks/useApi';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { AnimatedCard } from '@/components/AnimatedCard';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,7 +58,7 @@ interface FormFields {
 
 const formSchema = z.object({
   productName: z.string().min(1),
-  barcode: z.string().default(''),
+  barcode: z.string().optional().default(''),
   quantity: z.coerce.number().min(1),
   unitPrice: z.coerce.number().min(0),
 });
@@ -72,7 +73,7 @@ export default function ListPage() {
   );
   const { toast } = useToast();
 
-  const form = useForm<FormFields, any, FormFields>({
+  const form = useForm<FormFields>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       productName: '',
@@ -154,14 +155,8 @@ export default function ListPage() {
   const totalUnitValue = list.items ? list.items.reduce((sum, item) => sum + item.unit_price, 0) : 0;
 
   return (
-    <div className="container mx-auto flex flex-col h-screen py-10">
-            <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.push('/')}>Back to Home</Button>
-          <h1 className="text-3xl font-bold">{list.title}</h1>
-        </div>
-        <ShareListModal listId={id as string} />
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/15">
+      <div className="container mx-auto py-10 px-4">
       <AnimatedCard className="mb-6 glass">
         <CardHeader>
           <CardTitle>Add New Item</CardTitle>
@@ -230,48 +225,50 @@ export default function ListPage() {
         </CardContent>
       </AnimatedCard>
 
-      <AnimatedCard className="glass">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Items</CardTitle>
-          <div className="text-xs text-muted-foreground">
-            Total Unit Value: ${totalUnitValue.toFixed(2)}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Total Value: ${list.total_value.toFixed(2)}
-          </div>
-        </CardHeader>
-        <CardContent className="flex-grow overflow-hidden">
-          <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
-            <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Código de Barras</TableHead>
-                <TableHead>Quantidade</TableHead>
-                <TableHead>Preço Unitário</TableHead>
-                <TableHead>Preço Total</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.product_name}</TableCell>
-                  <TableCell>{item.barcode}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>${item.unit_price.toFixed(2)}</TableCell>
-                  <TableCell>${item.total_price.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon">
-                      {/* Add edit/delete icons here */}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>      </AnimatedCard>
+        <AnimatedCard className="glass">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Items</CardTitle>
+            <div className="text-xs text-muted-foreground">
+              Total Unit Value: ${totalUnitValue.toFixed(2)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Total Value: ${list.total_value.toFixed(2)}
+            </div>
+          </CardHeader>
+          <CardContent className="flex-grow overflow-hidden">
+            <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Código de Barras</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Preço Unitário</TableHead>
+                    <TableHead>Preço Total</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {list.items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.product_name}</TableCell>
+                      <TableCell>{item.barcode}</TableCell>
+                      <TableCell>{item.quantity}</TableCell>
+                      <TableCell>${item.unit_price.toFixed(2)}</TableCell>
+                      <TableCell>${item.total_price.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon">
+                          {/* Add edit/delete icons here */}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </AnimatedCard>
+      </div>
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Link from 'next/link';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,10 +29,6 @@ interface ListItem {
 
 const formSchema = z.object({
   title: z.string().min(1),
-  productName: z.string().optional(),
-  barcode: z.string().optional(),
-  quantity: z.coerce.number().optional(),
-  unitPrice: z.coerce.number().optional(),
 });
 
 // Backend response shape for NFC-e parsing
@@ -134,65 +131,87 @@ export default function NewListPage() {
   };
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Home</Button>
-        <h1 className="text-3xl font-bold">Create New List</h1>
-      </div>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="My new list" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="submit">Create</Button>
-        </form>
-      </Form>
+    <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/15">
+      <div className="container mx-auto py-10 px-4">
 
-      <div className="mt-8">
-        <Button onClick={() => setIsScanningFiscalCoupon(!isScanningFiscalCoupon)}>
-          {isScanningFiscalCoupon ? 'Close Fiscal Coupon Scanner' : 'Import from Fiscal Coupon'}
-        </Button>
-        {isScanningFiscalCoupon && (
-          <div className="mt-4">
-            <BarcodeScanner onScan={handleScan} scanFiscalCoupon={isScanningFiscalCoupon} onClose={() => setIsScanningFiscalCoupon(false)} />
+        <div className="max-w-2xl">
+          <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-lg p-8 shadow-lg">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-lg font-semibold text-foreground">Nome da Lista</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ex: Compras do mês, Lista do supermercado..."
+                          className="bg-background/50 border-border focus:border-primary text-lg"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-lg py-3"
+                >
+                  Criar Lista
+                </Button>
+              </form>
+            </Form>
           </div>
-        )}
+        </div>
 
-        {importedItems.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">Imported Items</h2>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Barcode</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Unit Price</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {importedItems.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{item.productName}</TableCell>
-                    <TableCell>{item.barcode}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>${item.unitPrice.toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <div className="mt-8 space-y-6">
+          <Button
+            onClick={() => setIsScanningFiscalCoupon(!isScanningFiscalCoupon)}
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+          >
+            {isScanningFiscalCoupon ? 'Fechar Scanner' : 'Importar da Nota Fiscal'}
+          </Button>
+
+          {isScanningFiscalCoupon && (
+            <div className="mt-4">
+              <BarcodeScanner
+                onScan={handleScan}
+                scanFiscalCoupon={isScanningFiscalCoupon}
+                onClose={() => setIsScanningFiscalCoupon(false)}
+              />
+            </div>
+          )}
+
+          {importedItems.length > 0 && (
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold mb-4 text-foreground">Itens Importados</h2>
+              <div className="bg-card/60 backdrop-blur-sm border border-border/50 rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-foreground">Produto</TableHead>
+                      <TableHead className="text-foreground">Código</TableHead>
+                      <TableHead className="text-foreground">Quantidade</TableHead>
+                      <TableHead className="text-foreground">Preço Unitário</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importedItems.map((item, index) => (
+                      <TableRow key={index} className="border-border">
+                        <TableCell className="text-foreground">{item.productName}</TableCell>
+                        <TableCell className="text-muted-foreground">{item.barcode}</TableCell>
+                        <TableCell className="text-foreground">{item.quantity}</TableCell>
+                        <TableCell className="text-primary font-semibold">R$ {item.unitPrice.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
