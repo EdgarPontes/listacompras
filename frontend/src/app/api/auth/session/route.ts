@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get('token');
 
   if (!token) {
@@ -29,4 +29,17 @@ export async function GET() {
   }
 
   return NextResponse.json({ token: token.value });
+}
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true });
+
+  response.cookies.set('token', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 0,
+    path: '/',
+  });
+
+  return response;
 }
