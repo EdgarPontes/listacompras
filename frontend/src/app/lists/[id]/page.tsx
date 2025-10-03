@@ -84,7 +84,12 @@ export default function ListPage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        productName: values.productName,
+        barcode: values.barcode,
+        quantity: Number(values.quantity),
+        unitPrice: Number(values.unitPrice),
+      }),
     });
 
     if (response.ok) {
