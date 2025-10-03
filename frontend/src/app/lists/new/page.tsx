@@ -16,7 +16,6 @@ import {
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import Link from 'next/link';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { useToast } from '@/hooks/use-toast';
 
@@ -108,7 +107,6 @@ export default function NewListPage() {
           toast({
             title: 'Fiscal coupon scanned',
             description: 'No items found in the fiscal coupon.',
-            variant: 'destructive',
           });
         }
       } catch (error) {
@@ -116,7 +114,6 @@ export default function NewListPage() {
         toast({
           title: "Fiscal coupon scanned",
           description: `Error processing fiscal coupon: ${(error as Error).message}`,
-          variant: "destructive",
         });
       }
     } else {
@@ -125,7 +122,6 @@ export default function NewListPage() {
       toast({
         title: "Unexpected Barcode Scan",
         description: "Please use the 'Import from Fiscal Coupon' button for QR codes.",
-        variant: "destructive",
       });
     }
   };

@@ -14,7 +14,7 @@ interface BarcodeScannerProps {
 export function BarcodeScanner({ onScan, scanFiscalCoupon, onClose }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReaderRef = useRef(new BrowserMultiFormatReader());
-  const controlsRef = useRef<IScannerControls | undefined>();
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [isScanningInternal, setIsScanningInternal] = useState(false); // Internal state for regular barcode scanning
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +28,7 @@ export function BarcodeScanner({ onScan, scanFiscalCoupon, onClose }: BarcodeSca
       // If scanner is not active, stop any ongoing scanning and clear controls
       if (controlsRef.current) {
         controlsRef.current.stop();
-        controlsRef.current = undefined;
+        controlsRef.current = null;
       }
       return;
     }
@@ -46,7 +46,7 @@ export function BarcodeScanner({ onScan, scanFiscalCoupon, onClose }: BarcodeSca
         }
         selectedDeviceId = videoInputDevices[0].deviceId;
 
-        controlsRef.current = await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
+        controlsRef.current = await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current!, (result, err) => {
           if (result) {
             onScan(result.getText());
             // If it's a regular barcode scan, stop the internal scanning state
@@ -70,7 +70,7 @@ export function BarcodeScanner({ onScan, scanFiscalCoupon, onClose }: BarcodeSca
     return () => {
       if (controlsRef.current) {
         controlsRef.current.stop();
-        controlsRef.current = undefined;
+        controlsRef.current = null;
       }
     };
   }, [isScannerActive, onScan, scanFiscalCoupon]); // Depend on isScannerActive to trigger start/stop

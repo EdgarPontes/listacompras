@@ -6,6 +6,12 @@ type ToasterToast = {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+type ToastState = {
+  toasts: ToasterToast[];
 };
 
 const TOAST_LIMIT = 1;
@@ -38,7 +44,7 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout);
 };
 
-export const reducer = (state: any, action: ActionType) => {
+export const reducer = (state: ToastState, action: ActionType): ToastState => {
   switch (action.type) {
     case "ADD_TOAST":
       return {
@@ -49,7 +55,7 @@ export const reducer = (state: any, action: ActionType) => {
     case "UPDATE_TOAST":
       return {
         ...state,
-        toasts: state.toasts.map((t: any) =>
+        toasts: state.toasts.map((t: ToasterToast) =>
           t.id === action.toast.id ? { ...t, ...action.toast } : t
         ),
       };
@@ -65,7 +71,7 @@ export const reducer = (state: any, action: ActionType) => {
 
       return {
         ...state,
-        toasts: state.toasts.map((t: any) =>
+        toasts: state.toasts.map((t: ToasterToast) =>
           t.id === id
             ? {
                 ...t,
@@ -84,14 +90,14 @@ export const reducer = (state: any, action: ActionType) => {
       }
       return {
         ...state,
-        toasts: state.toasts.filter((t: any) => t.id !== action.toast.id),
+        toasts: state.toasts.filter((t: ToasterToast) => t.id !== action.toast.id),
       };
   }
 };
 
-const listeners: Array<(state: any) => void> = [];
+const listeners: Array<(state: ToastState) => void> = [];
 
-let memoryState: any = { toasts: [] };
+let memoryState: ToastState = { toasts: [] };
 
 function dispatch(action: ActionType) {
   memoryState = reducer(memoryState, action);
@@ -132,7 +138,7 @@ function toast(props: Toast) {
 }
 
 function useToast() {
-  const [state, setState] = React.useState<any>(memoryState);
+  const [state, setState] = React.useState<ToastState>(memoryState);
 
   React.useEffect(() => {
     listeners.push(setState);
@@ -147,7 +153,7 @@ function useToast() {
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => dispatch({ type: "REMOVE_TOAST", toast: { id: toastId } }),
+    dismiss: (toastId?: string) => dispatch({ type: "REMOVE_TOAST", toast: { id: toastId || "" } }),
   };
 }
 

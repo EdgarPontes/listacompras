@@ -1,8 +1,7 @@
 'use client';
 
 import { useApi } from '@/hooks/useApi';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { AnimatedCard } from '@/components/AnimatedCard';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from '@/components/ui/table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,9 +26,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
-import { ShareListModal } from '@/components/ShareListModal';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
 
 interface ListItem {
   id: string;
@@ -58,16 +54,15 @@ interface FormFields {
 
 const formSchema = z.object({
   productName: z.string().min(1),
-  barcode: z.string().optional().default(''),
-  quantity: z.coerce.number().min(1),
-  unitPrice: z.coerce.number().min(0),
+  barcode: z.string().optional(),
+  quantity: z.number().min(1),
+  unitPrice: z.number().min(0),
 });
 
 
 export default function ListPage() {
   const params = useParams();
   const { id } = params;
-  const router = useRouter();
   const { data: list, loading, error, setData } = useApi<ShoppingList>(
     `/api/lists/${id}`
   );
@@ -126,7 +121,6 @@ export default function ListPage() {
         toast({
           title: "Barcode scanned",
           description: `Could not find product for barcode: ${result}`,
-          variant: "destructive",
         });
       }
     } catch (error) {
@@ -135,7 +129,6 @@ export default function ListPage() {
       toast({
         title: "Barcode scanned",
         description: `Error fetching product data for barcode: ${result}`,
-        variant: "destructive",
       });
     }
   };

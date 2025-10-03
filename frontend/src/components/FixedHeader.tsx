@@ -22,7 +22,7 @@ export function FixedHeader() {
       } else {
         setIsAuthenticated(false);
       }
-    } catch (error) {
+    } catch {
       setIsAuthenticated(false);
     }
   };
@@ -39,8 +39,8 @@ export function FixedHeader() {
         router.push('/login');
         router.refresh();
       }
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+    } catch (err) {
+      console.error('Erro ao fazer logout:', err);
     }
   };
 

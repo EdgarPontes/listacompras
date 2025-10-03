@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers';
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-  const token = cookies().get('token')?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get('token')?.value;
 
   const headers = {
     ...options.headers,

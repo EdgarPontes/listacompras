@@ -25,7 +25,7 @@ export function useApi<T>(url: string, options: RequestInit = {}) {
     };
 
     fetchData();
-  }, [url, JSON.stringify(options)]);
+  }, [url, options]);
 
   return { data, error, loading, setData };
 }
