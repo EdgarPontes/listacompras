@@ -10,7 +10,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     Authorization: `Bearer ${token}`,
   };
 
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${url}`,
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${url}`,
   {
     ...options,
     headers,

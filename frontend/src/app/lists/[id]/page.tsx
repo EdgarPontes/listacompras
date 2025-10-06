@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -67,6 +68,7 @@ export default function ListPage() {
     `/api/lists/${id}`
   );
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormFields>({
     resolver: zodResolver(formSchema),
@@ -79,32 +81,62 @@ export default function ListPage() {
   });
 
   async function onSubmit(values: FormFields) {
-    const response = await fetch(`/api/forward?url=/api/lists/${id}/items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        productName: values.productName,
-        barcode: values.barcode,
-        quantity: values.quantity,
-        unitPrice: values.unitPrice,
-      }),
-    });
+    if (isSubmitting) return; // Prevent multiple submissions
 
-    if (response.ok) {
-      const newItem = await response.json();
-      setData((prevList) => {
-        if (!prevList) return null;
-        return {
-          ...prevList,
-          items: [...prevList.items, newItem],
-        };
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/forward?url=/api/lists/${id}/items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productName: values.productName,
+          barcode: values.barcode,
+          quantity: values.quantity,
+          unitPrice: values.unitPrice,
+        }),
       });
-      form.reset();
-    } else {
-      // Handle error
-      console.error('Failed to create item');
+
+      if (response.ok) {
+        const newItem = await response.json();
+
+        // Check for duplicates before adding
+        setData((prevList) => {
+          if (!prevList) return null;
+
+          // Check if item with same ID already exists
+          const existingItem = prevList.items.find(item => item.id === newItem.id);
+          if (existingItem) {
+            console.warn('Item with this ID already exists, skipping duplicate');
+            return prevList;
+          }
+
+          return {
+            ...prevList,
+            items: [...prevList.items, newItem],
+          };
+        });
+
+        form.reset();
+
+        toast({
+          title: "Item added successfully",
+          description: `${values.productName} has been added to your list.`,
+        });
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create item');
+      }
+    } catch (error) {
+      console.error('Failed to create item:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to add item to list',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -217,7 +249,9 @@ export default function ListPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="self-end">Add Item</Button>
+              <Button type="submit" className="self-end" disabled={isSubmitting}>
+                {isSubmitting ? 'Adding...' : 'Add Item'}
+              </Button>
             </form>
           </Form>
         </CardContent>

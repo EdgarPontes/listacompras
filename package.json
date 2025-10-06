@@ -12,6 +12,7 @@
     "dev:frontend": "npm run dev --prefix frontend",
     "build": "npm run build --workspaces",
     "start": "npm run start --workspaces",
+    "setup": "node scripts/setup-env.js",
     "postinstall": "prisma generate --schema=./backend/prisma/schema.prisma"
   },
   "dependencies": {
