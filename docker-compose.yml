@@ -27,8 +27,11 @@ services:
       NODE_ENV: production
     depends_on:
       - backend
-    ports:
-      - "3000:3000"
+    # No Easypanel o roteamento do domínio é feito pelo Traefik via `domains`
+    # (service: frontend, port: 3000). Não publicamos porta no host para evitar
+    # conflito. Para testar localmente: docker compose run --service-ports frontend
+    expose:
+      - "3000"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
