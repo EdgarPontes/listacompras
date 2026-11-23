@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { useApi } from './useApi';
 
-const mockFetch = jest.fn();
+const mockFetch = jest.fn<typeof fetch>();
 global.fetch = mockFetch;
 
 describe('useApi', () => {

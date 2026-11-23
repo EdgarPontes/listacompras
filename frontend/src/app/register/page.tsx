@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,14 +15,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email('Informe um e-mail válido'),
+  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
 });
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -31,19 +36,36 @@ export default function RegisterPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const response = await fetch('/api/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
-    });
+    setIsSubmitting(true);
 
-    if (response.ok) {
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Não foi possível criar a conta.');
+      }
+
+      toast({
+        title: 'Conta criada',
+        description: 'Agora faça login com suas credenciais.',
+      });
+
       router.push('/login');
-    } else {
-      // Handle error
-      console.error('Registration failed');
+    } catch (error) {
+      toast({
+        title: 'Erro ao cadastrar',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -68,6 +90,7 @@ export default function RegisterPage() {
                         <FormControl>
                           <Input
                             placeholder="email@example.com"
+                            autoComplete="email"
                             className="bg-background/50 border-border focus:border-primary"
                             {...field}
                           />
@@ -85,6 +108,7 @@ export default function RegisterPage() {
                         <FormControl>
                           <Input
                             type="password"
+                            autoComplete="new-password"
                             className="bg-background/50 border-border focus:border-primary"
                             {...field}
                           />
@@ -96,8 +120,9 @@ export default function RegisterPage() {
                   <Button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isSubmitting}
                   >
-                    Cadastrar
+                    {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
                   </Button>
                 </form>
               </Form>

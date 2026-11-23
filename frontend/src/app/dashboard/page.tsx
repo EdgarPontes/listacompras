@@ -10,49 +10,89 @@ interface ShoppingList {
   id: string;
   title: string;
   total_value: number;
+  permission?: 'owner' | 'view' | 'edit' | string;
 }
 
+const formatBRL = (value: number) =>
+  (Number.isFinite(value) ? value : 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+
 export default function DashboardPage() {
-  const { data: lists, loading, error } = useApi<ShoppingList[]>('/api/lists');
+  const { data: lists, loading, error, refetch } = useApi<ShoppingList[]>('/api/lists');
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto py-10 px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[0, 1, 2].map(index => (
+            <div
+              key={index}
+              className="h-40 animate-pulse rounded-lg border border-border/50 bg-card/40"
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error.message}</div>;
+    return (
+      <div className="container mx-auto py-10 px-4">
+        <div className="mx-auto max-w-md rounded-lg border border-border/50 bg-card/40 p-8 text-center">
+          <h3 className="mb-2 text-xl font-semibold text-foreground">
+            Não foi possível carregar suas listas
+          </h3>
+          <p className="mb-6 text-muted-foreground">{error.message}</p>
+          <Button onClick={refetch}>Tentar novamente</Button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/15">
       <div className="container mx-auto py-10 px-4">
-        <div className="mb-8">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
+            <h2 className="text-2xl font-bold text-foreground">Minhas listas</h2>
             <p className="text-muted-foreground">Gerencie suas listas de compras</p>
           </div>
+          <Button asChild>
+            <Link href="/lists/new">Nova Lista</Link>
+          </Button>
         </div>
 
         {lists && lists.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lists.map((list) => (
+            {lists.map(list => (
               <Link href={`/lists/${list.id}`} key={list.id}>
                 <AnimatedCard className="glass hover:shadow-xl transition-all duration-300 hover:scale-105 bg-card/60 backdrop-blur-sm border-border/50">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-xl text-card-foreground flex items-center justify-between">
-                      {list.title}
-                      <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <CardTitle className="text-xl text-card-foreground flex items-center justify-between gap-2">
+                      <span className="truncate">{list.title}</span>
+                      <svg
+                        className="w-5 h-5 text-muted-foreground shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </CardTitle>
+                    {list.permission && list.permission !== 'owner' && (
+                      <span className="inline-flex w-fit items-center rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground">
+                        Compartilhada com você ({list.permission === 'edit' ? 'edição' : 'leitura'})
+                      </span>
+                    )}
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <p className="text-3xl font-bold text-primary">
-                        R$ {list.total_value.toFixed(2)}
+                        {formatBRL(list.total_value)}
                       </p>
-                      <div className="text-sm text-muted-foreground">
-                        Total estimado
-                      </div>
+                      <div className="text-sm text-muted-foreground">Total estimado</div>
                     </div>
                   </CardContent>
                 </AnimatedCard>

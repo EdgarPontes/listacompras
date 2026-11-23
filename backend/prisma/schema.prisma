@@ -18,17 +18,19 @@ model User {
 
 model ShoppingList {
   id          String       @id @default(cuid())
-  user        User         @relation(fields: [userId], references: [id])
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   title       String
   total_value Float        @default(0)
   items       ListItem[]
   sharedWith  SharedList[]
+
+  @@index([userId])
 }
 
 model ListItem {
   id           String       @id @default(cuid())
-  list         ShoppingList @relation(fields: [listId], references: [id])
+  list         ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
   listId       String
   product_name String
   barcode      String?
@@ -37,16 +39,19 @@ model ListItem {
   total_price  Float        @default(0)
   checked      Boolean      @default(false)
 
+  @@index([listId])
   @@map("list_items")
 }
 
 model SharedList {
-  id                String       @id @default(cuid())
-  list              ShoppingList @relation(fields: [listId], references: [id])
-  listId            String
-  sharedWithUser    User         @relation(fields: [sharedWithUserId], references: [id])
-  sharedWithUserId  String
-  permissions       String // "view" or "edit"
+  id               String       @id @default(cuid())
+  list             ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listId           String
+  sharedWithUser   User         @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+  sharedWithUserId String
+  permissions      String // "view" or "edit"
 
+  @@unique([listId, sharedWithUserId])
+  @@index([sharedWithUserId])
   @@map("shared_lists")
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +30,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -40,6 +42,10 @@ interface ShareListModalProps {
 }
 
 export function ShareListModal({ listId }: ShareListModalProps) {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,59 +55,78 @@ export function ShareListModal({ listId }: ShareListModalProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // First, we need to get the user id from the email
-    const userResponse = await fetch(
-      `/api/forward?url=/api/users?email=${values.email}`
-    );
-    if (!userResponse.ok) {
-      console.error("User not found");
-      return;
-    }
-    const user = await userResponse.json();
+    setIsSubmitting(true);
 
-    const response = await fetch("/api/forward?url=/api/share", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        listId,
-        sharedWithUserId: user.id,
-        permissions: values.permissions,
-      }),
-    });
+    try {
+      // Descobre o id do usuário a partir do e-mail.
+      const userLookupUrl = `/api/forward?url=${encodeURIComponent(
+        `/api/auth/users?email=${encodeURIComponent(values.email)}`
+      )}`;
+      const userResponse = await fetch(userLookupUrl);
 
-    if (response.ok) {
-      // Handle success
-      console.log("List shared successfully");
-    } else {
-      // Handle error
-      console.error("Failed to share list");
+      if (!userResponse.ok) {
+        const data = await userResponse.json().catch(() => ({}));
+        throw new Error(data.error || "Usuário não encontrado.");
+      }
+
+      const user = await userResponse.json();
+
+      const response = await fetch("/api/forward?url=/api/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          listId,
+          sharedWithUserId: user.id,
+          permissions: values.permissions,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Falha ao compartilhar a lista.");
+      }
+
+      toast({
+        title: "Lista compartilhada",
+        description: `Compartilhada com ${user.email} (${values.permissions === "edit" ? "edição" : "leitura"}).`,
+      });
+
+      form.reset();
+      setOpen(false);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Falha ao compartilhar a lista.",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Share</Button>
+        <Button variant="outline">Compartilhar</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Share List</DialogTitle>
+          <DialogTitle>Compartilhar lista</DialogTitle>
           <DialogDescription>
-            Share this list with other users.
+            Compartilhe esta lista com outro usuário pelo e-mail.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input placeholder="user@example.com" {...field} />
+                    <Input placeholder="usuario@exemplo.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,19 +137,16 @@ export function ShareListModal({ listId }: ShareListModalProps) {
               name="permissions"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Permissions</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>Permissões</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select permissions" />
+                        <SelectValue placeholder="Selecione as permissões" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="view">View</SelectItem>
-                      <SelectItem value="edit">Edit</SelectItem>
+                      <SelectItem value="view">Somente leitura</SelectItem>
+                      <SelectItem value="edit">Pode editar</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -132,7 +154,12 @@ export function ShareListModal({ listId }: ShareListModalProps) {
               )}
             />
             <DialogFooter>
-              <Button type="submit">Share</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Compartilhando..." : "Compartilhar"}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

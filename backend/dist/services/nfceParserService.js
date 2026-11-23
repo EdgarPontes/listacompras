@@ -75,7 +75,16 @@ function approxEqual(a, b, eps = 0.02) {
 class NfceParserService {
     parseFromUrl(url) {
         return __awaiter(this, void 0, void 0, function* () {
-            const resp = yield axios_1.default.get(url, { responseType: 'text' });
+            const resp = yield axios_1.default.get(url, {
+                responseType: 'text',
+                timeout: 15000,
+                maxContentLength: 5000000,
+                maxBodyLength: 5000000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; ListaComprasBot/1.0; +https://localhost)',
+                    Accept: 'text/html,application/xhtml+xml',
+                },
+            });
             return this.parseFromHtml(resp.data);
         });
     }

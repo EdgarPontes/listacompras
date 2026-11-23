@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -14,14 +15,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email('Informe um e-mail válido'),
+  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
 });
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -31,28 +36,60 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
-    });
+    setIsSubmitting(true);
 
-    if (response.ok) {
-      const { token } = await response.json();
-      // We will call our own API to set the cookie
-      await fetch('/api/auth/session', {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Não foi possível entrar.');
+      }
+
+      const { token } = data;
+
+      if (!token) {
+        throw new Error('Resposta de login inválida.');
+      }
+
+      const sessionResponse = await fetch('/api/auth/session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token }),
       });
-      router.push('/dashboard');
-    } else {
-      // Handle error
-      console.error('Login failed');
+
+      if (!sessionResponse.ok) {
+        throw new Error('Não foi possível iniciar a sessão.');
+      }
+
+      const nextParam =
+        typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search).get('next')
+          : null;
+
+      const safeNext =
+        nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')
+          ? nextParam
+          : '/dashboard';
+
+      router.push(safeNext);
+      router.refresh();
+    } catch (error) {
+      toast({
+        title: 'Erro ao entrar',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -77,6 +114,7 @@ export default function LoginPage() {
                         <FormControl>
                           <Input
                             placeholder="email@example.com"
+                            autoComplete="email"
                             className="bg-background/50 border-border focus:border-primary"
                             {...field}
                           />
@@ -94,6 +132,7 @@ export default function LoginPage() {
                         <FormControl>
                           <Input
                             type="password"
+                            autoComplete="current-password"
                             className="bg-background/50 border-border focus:border-primary"
                             {...field}
                           />
@@ -105,8 +144,9 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isSubmitting}
                   >
-                    Entrar
+                    {isSubmitting ? 'Entrando...' : 'Entrar'}
                   </Button>
                 </form>
               </Form>

@@ -64,7 +64,17 @@ function approxEqual(a: number | null, b: number | null, eps = 0.02): boolean | 
 
 export class NfceParserService {
   async parseFromUrl(url: string): Promise<ParseResult> {
-    const resp = await axios.get(url, { responseType: 'text' });
+    const resp = await axios.get(url, {
+      responseType: 'text',
+      timeout: 15_000,
+      maxContentLength: 5_000_000,
+      maxBodyLength: 5_000_000,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (compatible; ListaComprasBot/1.0; +https://localhost)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+    });
     return this.parseFromHtml(resp.data);
   }
 

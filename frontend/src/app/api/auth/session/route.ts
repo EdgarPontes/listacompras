@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-export async function POST(req: NextRequest) {
-  const { token } = await req.json();
+const COOKIE_MAX_AGE = 60 * 60; // 1 hora (mesmo tempo de expiração do JWT)
 
-  if (!token) {
+export async function POST(req: NextRequest) {
+  const { token } = await req.json().catch(() => ({ token: undefined }));
+
+  if (!token || typeof token !== 'string') {
     return NextResponse.json({ error: 'Token is required' }, { status: 400 });
   }
 
@@ -13,7 +15,8 @@ export async function POST(req: NextRequest) {
   response.cookies.set('token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60, // 1 hour
+    sameSite: 'lax',
+    maxAge: COOKIE_MAX_AGE,
     path: '/',
   });
 
@@ -37,6 +40,7 @@ export async function DELETE() {
   response.cookies.set('token', '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     maxAge: 0,
     path: '/',
   });
