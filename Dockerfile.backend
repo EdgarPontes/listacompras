@@ -1,0 +1,24 @@
+# Backend — Express + Prisma
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Manifestos + schema do Prisma.
+# O schema é necessário antes do `npm ci` porque o postinstall da raiz
+# executa `prisma generate --schema=./backend/prisma/schema.prisma`.
+COPY package.json package-lock.json ./
+COPY tsconfig.base.json ./
+COPY backend/package.json backend/package.json
+COPY frontend/package.json frontend/package.json
+COPY backend/prisma backend/prisma
+
+RUN npm ci
+
+# Código-fonte e build (tsc -> backend/dist)
+COPY backend backend
+RUN npm run build -w backend
+
+EXPOSE 3001
+
+# Aplica as migrations pendentes e sobe a API.
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./backend/prisma/schema.prisma && node backend/dist/index.js"]

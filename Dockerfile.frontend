@@ -1,0 +1,22 @@
+# Frontend — Next.js
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Manifestos + schema do Prisma (o postinstall da raiz executa `prisma generate`).
+COPY package.json package-lock.json ./
+COPY backend/package.json backend/package.json
+COPY frontend/package.json frontend/package.json
+COPY backend/prisma backend/prisma
+
+RUN npm ci
+
+# O next.config.ts usa outputFileTracingRoot na raiz do monorepo,
+# então copiamos o repositório inteiro (respeitando o .dockerignore).
+COPY . .
+
+RUN npm run build -w frontend
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start", "-w", "frontend"]

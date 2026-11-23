@@ -1,0 +1,24 @@
+node_modules
+**/node_modules
+
+# builds / artefatos
+backend/dist
+frontend/.next
+frontend/out
+frontend/build
+
+# git / editor
+.git
+.gitignore
+.vscode
+.idea
+
+# segredos e configs locais
+.env
+**/.env
+**/.env.local
+**/.env.*.local
+
+# logs / temporários
+*.log
+.DS_Store
