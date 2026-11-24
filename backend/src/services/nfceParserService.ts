@@ -41,20 +41,24 @@ export interface ParseResult {
 
 function parseNumberBR(value?: string | null): number | null {
   if (!value) return null;
-  // Remove non-digits except separators and minus
-  let v = value
-    .replace(/\u00A0/g, ' ') // nbsp
-    .replace(/[^0-9.,-]/g, '')
-    .trim();
-  // If both '.' and ',' exist, assume '.' is thousands and ',' is decimal
-  if (v.includes('.') && v.includes(',')) {
-    v = v.replace(/\./g, '').replace(/,/g, '.');
-  } else if (v.includes(',')) {
-    // Only comma -> decimal
-    v = v.replace(/,/g, '.');
+
+  // Extrai apenas o token numérico, ignorando rótulos como "Qtde.:" ou "Vl. Unit.:".
+  // Sem isso, o ponto de uma abreviação (ex.: "Qtde.") seria lido como separador
+  // decimal e "Qtde.:3" viraria 0,3 em vez de 3.
+  const normalized = value.replace(/\u00A0/g, ' ');
+  const match = normalized.match(
+    /-?\d{1,3}(?:\.\d{3})*,\d+|-?\d+,\d+|-?\d+(?:\.\d+)?/
+  );
+  if (!match) return null;
+
+  let num = match[0];
+  if (num.includes(',')) {
+    // Formato brasileiro: '.' é separador de milhar e ',' é decimal.
+    num = num.replace(/\./g, '').replace(',', '.');
   }
-  const num = Number(v);
-  return Number.isFinite(num) ? num : null;
+
+  const parsed = Number(num);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function approxEqual(a: number | null, b: number | null, eps = 0.02): boolean | undefined {
@@ -86,7 +90,12 @@ export class NfceParserService {
     $('#tabResult tr[id^="Item"]').each((_: number, tr: any) => {
       const row = $(tr);
       const descricao = row.find('span.txtTit2').first().text().trim();
-      const codigo = row.find('span.RCod').first().text().trim() || null;
+      const codigoText = row.find('span.RCod').first().text().trim();
+      const codigo =
+        codigoText
+          .replace(/^\(?\s*(?:C[óo]digo|Cód)\s*:?\s*/i, '')
+          .replace(/\)+$/, '')
+          .trim() || null;
       const quantidade = parseNumberBR(row.find('span.Rqtd').first().text());
       const unidade = (row.find('span.RUN').first().text().trim() || null);
       const valor_unitario = parseNumberBR(row.find('span.RvlUnit').first().text());
@@ -114,8 +123,9 @@ export class NfceParserService {
     const totais: TotaisNota = {};
     const totalBlock = $('#totalNota');
     if (totalBlock.length) {
-      // We try to find common labels. Different portals may vary; use robust selectors.
+      // Different portals may vary; combine robust selectors, label matching and text regex.
       const text = totalBlock.text();
+
       // Try to locate by nearby spans strong/labels
       const getNearNumber = (selector: string): number | null => {
         const el = totalBlock.find(selector).first();
@@ -123,18 +133,40 @@ export class NfceParserService {
         return parseNumberBR(el.text());
       };
 
+      // Locate the value by the label of each total line
+      // (e.g. "Qtd. total de itens:", "Valor total R$:").
+      const getTotalByLabel = (labelRe: RegExp): number | null => {
+        const lines = totalBlock.find('#linhaTotal, .linhaTotal');
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines.eq(i);
+          const label = line.find('label').first().text();
+          if (labelRe.test(label)) {
+            return parseNumberBR(line.find('.totalNumb, span').first().text());
+          }
+        }
+        return null;
+      };
+
       // Common classes/ids are not guaranteed; fallback to regex on text
-      totais.quantidade_total_itens = getNearNumber('#QtdTotalItens, .QtdTotalItens') ??
-        parseNumberBR((/Quantidade\s*total\s*de\s*itens\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
+      totais.quantidade_total_itens =
+        getNearNumber('#QtdTotalItens, .QtdTotalItens') ??
+        getTotalByLabel(/qtd\.?\s*total\s*de\s*itens/i) ??
+        parseNumberBR((/(?:Quantidade|Qtd\.?)\s*total\s*de\s*itens\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
 
-      totais.valor_total = getNearNumber('#ValorTotal, .ValorTotal') ??
-        parseNumberBR((/Valor\s*Total\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
+      totais.valor_total =
+        getNearNumber('#ValorTotal, .ValorTotal') ??
+        getTotalByLabel(/valor\s*total/i) ??
+        parseNumberBR((/Valor\s*total\s*(?:R\$)?\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
 
-      totais.descontos = getNearNumber('#Descontos, .Descontos') ??
-        parseNumberBR((/Descontos?\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
+      totais.descontos =
+        getNearNumber('#Descontos, .Descontos') ??
+        getTotalByLabel(/desconto/i) ??
+        parseNumberBR((/Descontos?\s*(?:R\$)?\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
 
-      totais.valor_a_pagar = getNearNumber('#ValorAPagar, .ValorAPagar') ??
-        parseNumberBR((/Valor\s*a\s*pagar\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
+      totais.valor_a_pagar =
+        getNearNumber('#ValorAPagar, .ValorAPagar') ??
+        getTotalByLabel(/valor\s*a\s*pagar/i) ??
+        parseNumberBR((/Valor\s*a\s*pagar\s*(?:R\$)?\s*[:\-]?\s*([0-9.,]+)/i.exec(text)?.[1]) || null);
 
       const formaPg = totalBlock.find('#FormaPagamento, .FormaPagamento').first().text().trim();
       totais.forma_pagamento = formaPg || (/(Forma\s*de\s*Pagamento|Pagamento)\s*[:\-]?\s*([^\n]+)/i.exec(text)?.[2]?.trim() || null);
